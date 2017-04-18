@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+  <style type="text/css">
+
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+pre.code {
+    border: 2px solid #666;
+    background-color: #F4F4F4;
+    padding-left: 10px;
+    padding-top: 0px;
+}
+code {
+    border: 2px solid #d0d0d0;
+    background-color: LightYellow;
+    padding: 2px;
+    padding-left: 10px;
+    display:table;
+    white-space:pre;
+    margin:2px;
+    margin-bottom:10px;
+}
+dt {
+    font-weight: bold;
+}
+.ins {
+    background-color:#A0FFA0;
+    text-decoration: underline;
+}
+.del {
+    background-color:#FFA0A0;
+    text-decoration:line-through
+}    
+</style>
+
+<title>Extending class template deduction to aggregates</title>
+</head>
+
+<body>
+<p>Document number: P????R0<br>
+Date: 2017-04-18<br>
+Reply-To: Anton Bikineev, Kaspersky Lab. (<a href="mailto:ant.bikineev@gmail.com">ant.bikineev@gmail.com</a>, <a href="mailto:anton.bikineev@kaspersky.com">anton.bikineev@kaspersky.com</a>)<br>
+Audience: Core Working Group, Evolution Working Group
+</p>
+
+<h1>Extending class template deduction to aggregates</h1> 
+This paper discusses an extension to template argument deduction for class templates (P0091R3) whose specializations are aggregates.
+<h2>I. Motivation and idea</h2>
+C++17 allows us to automatically deduce class template parameters from constructor arguments. This is a very convenient feature in generic programming that helps avoid make_* boilerplate and reduce code redundancy. To find a right path to deduce template arguments a compiler generates fictional overloads corresponding to each constructor in the template and then performs overload resolution. But C++ has another way of initializing classes using aggregate initialization that was not addressed in the original proposal.<br>
+A very first example that comes to mind is as follows:
+<code>template &lt;class T&gt; struct node_t {
+    T value;
+    node_t* next;
+};
+
+auto root = new node_t&lt;int&gt;{1, new node_t&lt;int&gt;{2, new node_t&lt;int&gt;{3, static_cast&lt;node_t&lt;int&gt;*&gt;(nullptr)}}};
+</code>
+It's clear that the need to specify template parameters for <tt>node_t</tt> initialization is superfluous. It gets even more boring if one has a class template with multiple template parameters, e.g. <tt>simple_pair&lt;T,U&gt;</tt> or something.<br>
+To overcome this problem one might create an explicit deduction guide like this:
+<code>template &lt;class T&gt;
+node_t(T, node_t&lt;T&gt;* next) -&gt; node_t&lt;T&gt;;
+</code>
+and then user code would look slightly shorter and better:
+<code>auto root = new node_t{1, new node_t{2, new node_t{3, static_cast&lt;node_t&lt;int&gt;*&gt;(nullptr)}}};</code>
+But as long as we have an automatic way to initialize an object of aggregate type from initializer-list, why not have an automatic way to deduce its template parameters from there?
+<h2>II. Proposed wording</h2>
+Modify the first paragraph of &sect;13.3.1.8 [over.match.class.deduct] as follows:
+<blockquote>
+A set of functions and function templates is formed comprising:
+<ul>
+  <li><span class="ins">If any specialization of the class template designated by the <em>template-name</em> is an aggregate type and the class template doesn't have a pack expansion depending on its template parameters in the <em>base-specifier-list</em>, a function template with the following properties:</span>
+  <ul>
+   <li><span class="ins">The template parameters are the template parameters of the class template.</span></li>
+   <li><span class="ins">The types of the function parameters are those of the <em>elements</em> (8.6.1.2) of the aggregate designated by <em>template-id</em>.</span></li>
+   <li>The return type is the class template specialization designated by the <em>template-name</em> and template arguments corresponding to the template parameters obtained from the class template.</li>
+  </ul>
+ </li>
+ <li><span class="ins">Otherwise</span> for each constructor of the class template designated by the <em>template-name</em>, a function template with the following properties:
+  <ul>
+   <li>The template parameters are the template parameters of the class template followed by the template parameters (including default template arguments) of the constructor, if any.</li>
+   <li>The types of the function parameters are those of the constructor.</li>
+   <li>The return type is the class template specialization designated by the <em>template-name</em> and template arguments corresponding to the template parameters obtained from the class template.</li>
+  </ul>
+ </li>
+ <li>For each <em>deduction-guide</em>, a function or function template with the following properties:
+  <ul>
+   <li>The template parameters, if any, and function parameters are those of the <em>deduction-guide</em>.</li>
+   <li>The return type is the <em>simple-template-id</em> of the <em>deduction-guide</em>.</li>
+  </ul>
+ </li>
+</ul></blockquote>
+
+</body></html>
