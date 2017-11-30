@@ -55,7 +55,7 @@ Audience: Core Working Group, Evolution Working Group
 </p>
 
 <h1>Extending class template deduction to aggregates</h1> 
-This paper discusses an extension to template argument deduction for class templates (P0091R3) whose specializations are aggregates.
+This paper discusses a possible extension to template argument deduction for class templates (P0091R3) whose specializations are aggregates.
 <h2>I. Motivation and idea</h2>
 C++17 allows us to automatically deduce class template parameters from constructor arguments. This is a very convenient feature in generic programming that helps avoid make_* boilerplate and reduce code redundancy. To find a right path to deduce template arguments a compiler generates fictional overloads corresponding to each constructor in the template and then performs overload resolution. But C++ has another way of initializing classes using aggregate initialization that was not addressed in the original proposal.<br>
 A very first example that comes to mind is as follows:
@@ -83,10 +83,10 @@ A set of functions and function templates is formed comprising:
   <ul>
    <li><span class="ins">The template parameters are the template parameters of the class template.</span></li>
    <li><span class="ins">The types of the function parameters are those of the <em>elements</em> (8.6.1.2) of the aggregate designated by <em>template-id</em>.</span></li>
-   <li>The return type is the class template specialization designated by the <em>template-name</em> and template arguments corresponding to the template parameters obtained from the class template.</li>
+   <li><span class="ins">The return type is the class template specialization designated by the <em>template-name</em> and template arguments corresponding to the template parameters obtained from the class template.</span></li>
   </ul>
  </li>
- <li><span class="ins">Otherwise</span> for each constructor of the class template designated by the <em>template-name</em>, a function template with the following properties:
+ <li><span class="ins">Otherwise</span> for each constructor of the primary class template designated by the <em>template-name</em>, if the template is defined, a function template with the following properties:
   <ul>
    <li>The template parameters are the template parameters of the class template followed by the template parameters (including default template arguments) of the constructor, if any.</li>
    <li>The types of the function parameters are those of the constructor.</li>
